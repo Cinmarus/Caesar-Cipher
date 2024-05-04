@@ -30,16 +30,13 @@ def read_folder():
     return file_list
 
 
-print(read_folder())
-
-
 def get_nominal_freq():
     with open('ch-freq-en.txt', 'r') as file:
         lines = file.readlines()
         nominal_freq = {}
         for i in lines:
             i = i.split()
-            nominal_freq.update({i[0]: float(i[1])})
+            nominal_freq.update({i[0].lower(): float(i[1])})
         return nominal_freq
 
 
@@ -63,22 +60,32 @@ def get_freq(text):
 
 def find_key(text):
     text_lst = list(text)
-    diff_base = 100
-    for shift in range(1, 25):
-        new_text = try_shift(text_lst, shift)
-        if calc_diff(new_text) < diff_base:
-            diff_base = calc_diff(new_text)
+    diff_base = 200
+    for shift in range(0, 25):
+        new_text = try_shift(text_lst.copy(), shift)
+        new_diff = calc_diff(new_text)
+        if new_diff < diff_base:
+            diff_base = new_diff
             key = shift
     return key
 
 
-def try_shift(text, shift):
+def try_shift(text, shift):             # do przerobienia bo wygląda jak gówno
     for i in range(len(text)):
+        xD = 0
+        if 65 <= ord(text[i]) <= 90:
+            text[i] = text[i].lower()
+            xD = 1
+        if ord(text[i]) < 97 or ord(text[i]) > 122:
+            continue
         if ord(text[i]) + shift <= 122:
             b = ord(text[i]) + shift
         else:
             b = ord(text[i]) + shift - 26
-        text[i] = chr(b)
+        if xD == 1:
+            text[i] = chr(b).upper()
+        else:
+            text[i] = chr(b)
     return text
 
 
@@ -91,4 +98,24 @@ def calc_diff(text):
     return diff
 
 
+def decode(file, shift):
+    with open(f'secret_files/{file}.txt', 'r') as file:
+        text = file.read()
+        decoded = try_shift(list(text), shift)
+    return ''.join(decoded)
 
+
+def save_to_file(source, file_name):
+    with open(f'desecretised_files\desecretised_{file_name}.txt', 'w') as file:
+        file.write(source)
+
+
+def main():
+    print_menu()
+    file_to_decode = choose_file()
+    content = get_file(file_to_decode)
+    key = find_key(content)
+    print('The key used for decoding is:', key)
+    print(f'Your decoded text is saved into file: decoded_{file_to_decode}.txt')
+    decoded = decode(file_to_decode, key)
+    save_to_file(decoded, file_to_decode)
